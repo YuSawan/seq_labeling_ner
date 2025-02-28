@@ -1,0 +1,22 @@
+[project]
+name = "seq-labeling-ner"
+version = "0.1.0"
+description = "Sequential labeling based named entity recognition toolkit"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=3.3.2",
+    "fugashi>=1.4.0",
+    "protobuf>=5.29.3",
+    "sentencepiece>=0.2.0",
+    "spacy-alignments>=0.9.1",
+    "torch>=2.6.0",
+    "transformers[torch]>=4.49.0",
+    "unidic-lite>=1.0.8",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pytest>=8.3.4",
+]
