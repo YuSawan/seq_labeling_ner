@@ -61,6 +61,16 @@ class Encoder(nn.Module):
         self.config = self.bert.config
         self.pooler = POOLERS[f'{config.pooler}']
 
+        if config.lstm_layers and config.lstm_hidden_size:
+            bert_hidden_size = self.config.hidden_size
+            self.lstm = nn.LSTM(
+                input_size = bert_hidden_size if config.pooler in ('last', 'sum') else 4 * bert_hidden_size,
+                hidden_size= config.lstm_hidden_size,
+                num_layers = config.lstm_layers,
+                batch_first = True,
+                bidirectional = True,
+            )
+
     def resize_token_embeddings(self, new_num_tokens: int, pad_to_multiple_of: int | None = None) -> nn.Embedding:
         return self.bert.model.resize_token_embeddings(new_num_tokens, pad_to_multiple_of)
 
@@ -83,6 +93,9 @@ class Encoder(nn.Module):
             logits = self.bert(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids).hidden_states
         else:
             logits = self.bert(input_ids, attention_mask=attention_mask).hidden_states
-        outputs = self.pooler(logits)
+        sequence_outputs = self.pooler(logits)
 
-        return outputs
+        if hasattr(self, 'lstm'):
+            sequence_outputs, (_, _) = self.lstm(sequence_outputs)
+
+        return sequence_outputs

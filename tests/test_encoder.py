@@ -37,18 +37,23 @@ def test_Bert(model_name: str, from_pretrained: bool) -> None:
     assert isinstance(output, BaseModelOutputWithPoolingAndCrossAttentions) or isinstance(output, BaseModelOutput)
     assert hasattr(output, "hidden_states")
 
+
 @pytest.mark.parametrize("model_name", TEST_MODEL)
 @pytest.mark.parametrize('pooler', ['sum', 'last', 'concat'])
-def test_Encoder(model_name: str, pooler: str) -> None:
+@pytest.mark.parametrize('use_lstm', [True, False])
+def test_Encoder(model_name: str, pooler: str, use_lstm: bool) -> None:
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     config = BertNERConfig(model_name)
     config.pooler = pooler
-    pooler_func = POOLERS[pooler]
+    if use_lstm:
+        config.lstm_layers = 1
+        config.lstm_hidden_size = 200
 
     encoder = Encoder(config)
     assert isinstance(encoder, Encoder)
     assert hasattr(encoder, "config") and isinstance(encoder.config, PretrainedConfig)
-    assert hasattr(encoder, "pooler") and encoder.pooler is pooler_func
+    assert hasattr(encoder, "pooler") and encoder.pooler is POOLERS[pooler]
+    assert hasattr(encoder, "lstm") if use_lstm else not hasattr(encoder, "lstm")
     assert isinstance(encoder.bert, Bert)
     assert encoder.bert.model.name_or_path == model_name
 
@@ -57,8 +62,11 @@ def test_Encoder(model_name: str, pooler: str) -> None:
     output = encoder(**encodings)
     assert isinstance(output, torch.Tensor)
 
-    if pooler in ['last', 'sum']:
-        bert_hidden_size = encoder.config.hidden_size
-    if pooler == 'concat':
-        bert_hidden_size = 4 * encoder.config.hidden_size
-    assert output.size() == (1, encodings.input_ids.size(1), bert_hidden_size)
+    if use_lstm:
+        assert output.size() == (1, encodings.input_ids.size(1), 400)
+    else:
+        if pooler in ['last', 'sum']:
+            bert_hidden_size = encoder.config.hidden_size
+        if pooler == 'concat':
+            bert_hidden_size = 4 * encoder.config.hidden_size
+        assert output.size() == (1, encodings.input_ids.size(1), bert_hidden_size)
