@@ -118,27 +118,25 @@ class Preprocessor:
         tokenizer: PreTrainedTokenizerBase,
         labels: list[str],
         format: str = "iob2",
-        extend_context: bool = True,
         max_sequence_length: Optional[int] = None,
         pretokenize: bool = False,
     ):
         if not isinstance(tokenizer, (PreTrainedTokenizerFast, BertJapaneseTokenizer)):
             raise RuntimeError(
-                "Only `BertTokenizer` and `BertJapaneseTokenizer`, `LlamaTokenizerFast` are currently supported,"
+                "Only ``PreTrainedTokenizerFast`, `BertTokenizerFast` and `BertJapaneseTokenizer`, `LlamaTokenizerFast` are currently supported,"
                 f" but got `{type(tokenizer).__name__}`."
             )
         if format not in [ "iob1", "iob2", "ioe1", "ioe2", "iobes", "bilou"]:
             raise ValueError(f"Invalid format: {format}")
-        self.tokenizer = tokenizer
-        if isinstance(tokenizer, BertJapaneseTokenizer):
-            self._fast_tokenizer = BertJapaneseTokenizerFast.from_pretrained(tokenizer.name_or_path, model_max_length=tokenizer.model_max_length)
-        elif tokenizer.is_fast:
+        if tokenizer.is_fast:
             self._fast_tokenizer = tokenizer
         else:
-            raise RuntimeError(
-                "Only `PreTrainedTokenizerFast` is supported," f" but got `{type(tokenizer).__name__}`(PreTrainedTokenizerBase)."
-            )
-
+            if isinstance(tokenizer, BertJapaneseTokenizer):
+                self._fast_tokenizer = BertJapaneseTokenizerFast.from_pretrained(tokenizer.name_or_path, model_max_length=tokenizer.model_max_length)
+            else:
+                raise RuntimeError(
+                    "Only `PreTrainedTokenizerFast` is supported," f" but got `{type(tokenizer).__name__}`(PreTrainedTokenizerBase)."
+                )
         type_set = set()
         for label in labels:
             if label != 'O':
@@ -147,7 +145,6 @@ class Preprocessor:
         self.labels = labels
         self.label2id = {label: i for i, label in enumerate(self.labels)}
         self.format = format
-        self.extend_context = extend_context
 
         if max_sequence_length is None:
             max_sequence_length = tokenizer.model_max_length
@@ -169,36 +166,20 @@ class Preprocessor:
                     raise ValueError("`word_positions` is required for pretokenization.")
                 segments.append(example['word_positions'])
 
-        token_ids: list[int] = []
-        entities: list[tuple[int, int, str]] = []
-        context_start = 0
         for example, tokenization in zip(document, self.tokenize([e["text"] for e in document], segments)):
             example_id = example["id"]
-            if not self.extend_context:
-                yield self._get_encoding(tokenization['token_ids'], self._get_entities(example, tokenization, context_start), example_id)
-            else:
-                if token_ids and len(token_ids + tokenization['token_ids']) > self.max_num_tokens:
-                    yield self._get_encoding(token_ids, entities, example_id)
-                    context_start = tokenization['context_boundary'][0]
-                    token_ids, entities = [], []
-                token_ids.extend(tokenization['token_ids'])
-                entities.extend(self._get_entities(example, tokenization, context_start))
-        if self.extend_context:
-            if token_ids:
-                yield self._get_encoding(token_ids, entities, example_id)
+            yield self._get_encoding(tokenization['token_ids'], self._get_entities(example, tokenization), example_id)
 
 
     def _get_encoding(self, token_ids: list[int], entities: list[tuple[int, int, str]], example_id: str) -> BatchEncoding:
         encoding = self._fast_tokenizer.prepare_for_model(
             token_ids,
             add_special_tokens=True,
-            return_token_type_ids=True
         )
-        # 純正のPreTrainedTokenizerFastはprepare_for_modelのadd_special_tokensに非対応
+        # PreTrainedTokenizerFastだけprepare_for_modelのadd_special_tokensに非対応
         if type(self._fast_tokenizer) is PreTrainedTokenizerFast:
             encoding['input_ids'] = [self._fast_tokenizer.cls_token_id] + encoding['input_ids'] + [self._fast_tokenizer.sep_token_id]
             encoding['attention_mask'] = [1] + encoding['attention_mask'] + [1]
-            encoding['token_type_ids'] = [0] + encoding['token_type_ids'] + [0]
 
         encoding["id"] = example_id
         labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(token_ids))]
@@ -207,17 +188,17 @@ class Preprocessor:
         return encoding
 
 
-    def _get_entities(self, example: Example, tokenization: dict[str, Any], context_start: int) -> list[tuple[int, int, str]]:
+    def _get_entities(self, example: Example, tokenization: dict[str, Any]) -> list[tuple[int, int, str]]:
         entity_map = {(ent["start"], ent["end"]): ent["label"] for ent in example["entities"]}
         entities = []
         for token_spans, char_spans in self._batch_spans(example, tokenization):
             for (char_start, char_end), (token_start, token_end) in zip(char_spans, token_spans):
                 entity_type = entity_map.pop((char_start, char_end), None)
                 if entity_type:
-                    entities.append((token_start - context_start, token_end - context_start, entity_type))
+                    entities.append((token_start, token_end, entity_type))
         entities, nested_entities = _remove_nested_mentions(entities)
         if nested_entities:
-            offset_map = {(t_s - context_start, t_e - context_start): (c_s, c_e) for (t_s, t_e), (c_s, c_e) in zip(token_spans, char_spans)}
+            offset_map = {(t_s, t_e): (c_s, c_e) for (t_s, t_e), (c_s, c_e) in zip(token_spans, char_spans)}
             assert offset_map
             for start, end, label in nested_entities:
                 nested_char_start, nested_char_end = offset_map.pop((start, end))
@@ -279,7 +260,10 @@ class Preprocessor:
             return_offsets_mapping=True,
         )
 
+        print(batch_text)
+        print(encoding)
         _post_process_encoding(encoding, batch_text, self._fast_tokenizer)
+        print(encoding)
         encoding = _merge_encoding(encoding, segments, self._fast_tokenizer)
 
         offset = 0
@@ -289,12 +273,8 @@ class Preprocessor:
                 logger.info(f"truncate sequence: {encoding['input_ids'][i]}")
                 tokens = tokens[: self.max_num_tokens]
                 boundary = (offset, offset + self.max_num_tokens)
-                if self.extend_context:
-                    offset += self.max_num_tokens
             else:
                 boundary = (offset, offset+n)
-                if self.extend_context:
-                    offset += n
 
             yield {
                 "token_ids": tokens,
@@ -338,6 +318,7 @@ def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]
         for i, (input_ids, offsets, (char_start, _)) in enumerate(
             zip(batch_input_ids, batch_offsets, positions)
         ):
+            print(input_ids)
             if not input_ids:  # skip illegal input_ids
                 continue
             if add_prefix_space and i > 0 and offsets[0] == (0, 0):
@@ -345,6 +326,9 @@ def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]
                 offsets = offsets[1:]
             merged_input_ids.extend(input_ids)
             merged_offsets.extend((char_start + ofs[0], char_start + ofs[1]) for ofs in offsets)
+
+        for i in range(1, len(merged_offsets)):
+            print(merged_offsets[i][0], merged_offsets[i - 1][1])
 
         assert all(
             merged_offsets[i][0] >= merged_offsets[i - 1][1] for i in range(1, len(merged_offsets))

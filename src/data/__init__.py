@@ -1,5 +1,5 @@
 from .collator import Collator
-from .preprocessor import Preprocessor, get_sequence_labels
+from .dataset import Preprocessor, get_sequence_labels
 
 __all__ = [
     "Collator",
