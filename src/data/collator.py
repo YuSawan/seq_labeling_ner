@@ -50,7 +50,7 @@ class Collator(DataCollatorWithPadding):
 
         if self.return_tensors == "pt":
             batch["labels"] = torch.tensor(batch["labels"], dtype=torch.int64) if batch["labels"] else None
-            batch["prediction_mask"] = torch.tensor(batch["prediction_mask"], dtype=torch.bool)
+            batch["prediction_mask"] = torch.tensor(batch["prediction_mask"], dtype=torch.int64)
         else:
             warnings.warn(f"return_tensors='{self.return_tensors}' is not supported.")
 
