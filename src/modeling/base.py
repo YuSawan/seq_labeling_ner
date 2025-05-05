@@ -54,9 +54,13 @@ class TokenModel(nn.Module):
             self.encoder.freeze_bert()
         self.config = config
 
-        classifier_dropout = (
-            config.classifier_dropout if config.classifier_dropout is not None else config.encoder_config.hidden_dropout_prob
-        )
+        if config.classifier_dropout is not None:
+            classifier_dropout = ( config.classifier_dropout )
+        else:
+            classifier_dropout = (
+                config.encoder_config.mlp_dropout if config.encoder_config.model_type == 'modernbert' else config.encoder_config.hidden_dropout_prob
+            )
+
         self.dropout = nn.Dropout(classifier_dropout)
         assert 0 < config.weight_O < 1
         self.classifier = self._build_classifier()

@@ -11,8 +11,8 @@ from src.modeling.encoder import Encoder
 from src.modeling.model_output import TokenClassifierOutput
 from src.modeling.pooler import get_last_layer
 
-TEST_MODEL = "google-bert/bert-base-uncased"
-dataset_path = "tests/test_data/dataset_toy.jsonl"
+TEST_MODEL = ['google-bert/bert-base-uncased', 'answerdotai/ModernBERT-base']
+dataset_path = 'tests/test_data/dataset_toy.jsonl'
 raw_datasets = read_dataset(train_file=dataset_path, cache_dir='tmp/')
 label_set = set()
 for document in raw_datasets["train"]:
@@ -23,16 +23,15 @@ labels = get_sequence_labels(sorted(label_set), format='iob2')
 training_arguments = TrainingArguments(output_dir='tmp/')
 format='iob2'
 
-tokenizer = AutoTokenizer.from_pretrained(TEST_MODEL)
-
 
 class TestTokenModel:
+    @pytest.mark.parametrize('model_name', TEST_MODEL)
     @pytest.mark.parametrize('classifier_dropout', [0.5, None])
     @pytest.mark.parametrize('bias_O', [6., None])
     @pytest.mark.parametrize('no_crf', [True, False])
-    def test__init__(self, classifier_dropout: float | None, bias_O: float | None, no_crf: bool) -> None:
+    def test__init__(self, model_name: str, classifier_dropout: float | None, bias_O: float | None, no_crf: bool) -> None:
         config = BertNERConfig(
-            TEST_MODEL,
+            model_name,
             pooler = 'last',
             freeze_bert = True,
             classifier_dropout=classifier_dropout,
@@ -62,7 +61,10 @@ class TestTokenModel:
         if classifier_dropout:
             model.dropout.p == classifier_dropout
         else:
-            model.dropout.p == model.config.encoder_config.hidden_dropout_prob
+            if model_name == 'answerdotai/ModernBERT-base':
+                model.dropout.p == model.config.encoder_config.mlp_dropout
+            else:
+                model.dropout.p == model.config.encoder_config.hidden_dropout_prob
 
         if no_crf:
             assert not hasattr(model, 'crf') and hasattr(model, 'loss_fct')
@@ -72,10 +74,12 @@ class TestTokenModel:
             assert isinstance(model.crf, CRF)
 
 
+    @pytest.mark.parametrize('model_name', TEST_MODEL)
     @pytest.mark.parametrize('no_crf', [True, False])
     @pytest.mark.parametrize('pretokenize', [True, False])
-    def test_forward(self, no_crf: bool, pretokenize: bool) -> None:
-        config = BertNERConfig(TEST_MODEL, freeze_bert=True, no_crf = no_crf)
+    def test_forward(self, model_name: str, no_crf: bool, pretokenize: bool) -> None:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        config = BertNERConfig(model_name, freeze_bert=True, no_crf = no_crf)
         config.num_labels = len(labels)
         model = TokenModel(config)
         preprocessor = Preprocessor(tokenizer, labels, format=format, pretokenize=pretokenize)
@@ -99,10 +103,12 @@ class TestTokenModel:
             assert outputs.predictions is None
 
 
+    @pytest.mark.parametrize('model_name', TEST_MODEL)
     @pytest.mark.parametrize('no_crf', [True, False])
     @pytest.mark.parametrize('pretokenize', [True, False])
-    def test_decode(self, no_crf: bool, pretokenize: bool) -> None:
-        config = BertNERConfig(TEST_MODEL, freeze_bert=True, no_crf = no_crf)
+    def test_decode(self, model_name: str, no_crf: bool, pretokenize: bool) -> None:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        config = BertNERConfig(model_name, freeze_bert=True, no_crf = no_crf)
         config.num_labels = len(labels)
         model = TokenModel(config)
         preprocessor = Preprocessor(tokenizer, labels, format=format, pretokenize=pretokenize)
