@@ -1,11 +1,14 @@
 import itertools
 from typing import Any, Iterable, Optional, TypedDict
 
+from datasets import Dataset, DatasetDict, load_dataset
+from datasets.fingerprint import get_temporary_cache_files_directory
 from transformers import (
     BatchEncoding,
     BertJapaneseTokenizer,
     PreTrainedTokenizerBase,
     PreTrainedTokenizerFast,
+    TrainingArguments,
     logging,
 )
 
@@ -25,6 +28,33 @@ class Example(TypedDict):
     text: str
     entities: list[Entity]
     word_positions: Optional[list[tuple[int, int]]]
+
+
+def read_dataset(
+        train_file: Optional[str] = None,
+        validation_file: Optional[str] = None,
+        test_file: Optional[str] = None,
+        cache_dir: Optional[str] = None
+        ) -> DatasetDict:
+    """
+    DatasetReader is for processing
+    Input:
+        train_file: dataset path for training
+        validation_file: dataset path for validation
+        test_file: dataset path for test
+    Output: DatasetDict
+    """
+    data_files = {}
+    if train_file is not None:
+        data_files["train"] = train_file
+    if validation_file is not None:
+        data_files["validation"] = validation_file
+    if test_file is not None:
+        data_files["test"] = test_file
+    cache_dir = cache_dir or get_temporary_cache_files_directory()
+    raw_datasets = load_dataset("json", data_files=data_files, cache_dir=cache_dir)
+
+    return raw_datasets
 
 
 def get_sequence_labels(label_set: list[str], format: str) -> list[str]:
@@ -119,7 +149,7 @@ class Preprocessor:
         labels: list[str],
         format: str = "iob2",
         max_sequence_length: Optional[int] = None,
-        pretokenize: bool = False,
+        pretokenize: bool = False
     ):
         if not isinstance(tokenizer, (PreTrainedTokenizerFast, BertJapaneseTokenizer)):
             raise RuntimeError(
@@ -156,7 +186,6 @@ class Preprocessor:
         self.max_num_tokens = max_sequence_length - num_specials
         self.pretokenize = pretokenize
 
-
     def __call__(self, document: list[Example]) -> Iterable[BatchEncoding]:
         segments = None
         if self.pretokenize:
@@ -168,10 +197,10 @@ class Preprocessor:
 
         for example, tokenization in zip(document, self.tokenize([e["text"] for e in document], segments)):
             example_id = example["id"]
-            yield self._get_encoding(tokenization['token_ids'], self._get_entities(example, tokenization), example_id)
+            yield self._get_encoding(tokenization['token_ids'], self._get_entities(example, tokenization), tokenization['prediction_mask'], example_id)
 
 
-    def _get_encoding(self, token_ids: list[int], entities: list[tuple[int, int, str]], example_id: str) -> BatchEncoding:
+    def _get_encoding(self, token_ids: list[int], entities: list[tuple[int, int, str]], prediction_mask: list[bool], example_id: str) -> BatchEncoding:
         encoding = self._fast_tokenizer.prepare_for_model(
             token_ids,
             add_special_tokens=True,
@@ -185,6 +214,8 @@ class Preprocessor:
         labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(token_ids))]
         labels = [-100] + labels + [-100]
         encoding["labels"] = labels
+        encoding["prediction_mask"] = [False] + prediction_mask + [False]
+
         return encoding
 
 
@@ -260,10 +291,7 @@ class Preprocessor:
             return_offsets_mapping=True,
         )
 
-        print(batch_text)
-        print(encoding)
         _post_process_encoding(encoding, batch_text, self._fast_tokenizer)
-        print(encoding)
         encoding = _merge_encoding(encoding, segments, self._fast_tokenizer)
 
         offset = 0
@@ -280,6 +308,7 @@ class Preprocessor:
                 "token_ids": tokens,
                 "context_boundary": boundary,
                 "offsets": encoding["offset_mapping"][i],
+                "prediction_mask": encoding["prediction_mask"][i]
             }
 
 
@@ -300,17 +329,23 @@ def _post_process_encoding(encoding: BatchEncoding, batch_text: list[str], token
         encoding["offset_mapping"][i][0] = (0, 0)
 
 
-def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]]] | None, tokenizer: PreTrainedTokenizerBase) -> BatchEncoding:
+def _merge_encoding(
+        encoding: BatchEncoding,
+        segments: list[list[tuple[int, int]]] | None,
+        tokenizer: PreTrainedTokenizerBase,
+    ) -> BatchEncoding:
     if not segments:
+        encoding['prediction_mask'] = [[True] * len(input_ids) for input_ids in encoding['input_ids']]
         return encoding
 
-    new_encoding: dict[str, Any] = {"input_ids": [], "offset_mapping": []}
+    new_encoding: dict[str, Any] = {"input_ids": [], "offset_mapping": [], "prediction_mask": []}
 
     add_prefix_space = getattr(tokenizer, "add_prefix_space", True)
     index = 0
     for positions in segments:
         merged_input_ids = []
         merged_offsets: list[tuple[int, int]] = []
+        merged_prediction_mask = []
 
         batch_input_ids = encoding["input_ids"][index : index + len(positions)]
         batch_offsets = encoding["offset_mapping"][index : index + len(positions)]
@@ -318,7 +353,6 @@ def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]
         for i, (input_ids, offsets, (char_start, _)) in enumerate(
             zip(batch_input_ids, batch_offsets, positions)
         ):
-            print(input_ids)
             if not input_ids:  # skip illegal input_ids
                 continue
             if add_prefix_space and i > 0 and offsets[0] == (0, 0):
@@ -326,9 +360,7 @@ def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]
                 offsets = offsets[1:]
             merged_input_ids.extend(input_ids)
             merged_offsets.extend((char_start + ofs[0], char_start + ofs[1]) for ofs in offsets)
-
-        for i in range(1, len(merged_offsets)):
-            print(merged_offsets[i][0], merged_offsets[i - 1][1])
+            merged_prediction_mask.extend([True] + [False] * (len(input_ids)-1))
 
         assert all(
             merged_offsets[i][0] >= merged_offsets[i - 1][1] for i in range(1, len(merged_offsets))
@@ -336,7 +368,33 @@ def _merge_encoding(encoding: BatchEncoding, segments: list[list[tuple[int, int]
 
         new_encoding["input_ids"].append(merged_input_ids)
         new_encoding["offset_mapping"].append(merged_offsets)
+        new_encoding["prediction_mask"].append(merged_prediction_mask)
         index += len(positions)
     assert index == len(encoding["input_ids"])
 
     return new_encoding
+
+
+def get_splits(
+        raw_datasets: DatasetDict,
+        preprocessor: Preprocessor,
+        training_arguments: Optional[TrainingArguments]=None
+        ) -> dict[str, Dataset]:
+    def preprocess(documents: Dataset) -> Any:
+        features: list[BatchEncoding] = []
+        for document in documents["examples"]:
+            features.extend(preprocessor(document))
+        outputs = {}
+        for k in list(features[0].keys()):
+            outputs[k] = [f[k] for f in features]
+        return outputs
+
+    if training_arguments:
+        with training_arguments.main_process_first(desc="dataset map pre-processing"):
+            column_names = next(iter(raw_datasets.values())).column_names
+            splits = raw_datasets.map(preprocess, batched=True, remove_columns=column_names)
+    else:
+        column_names = next(iter(raw_datasets.values())).column_names
+        splits = raw_datasets.map(preprocess, batched=True, remove_columns=column_names)
+
+    return splits
