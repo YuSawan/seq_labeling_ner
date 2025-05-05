@@ -70,9 +70,9 @@ class TestPreprocessor:
                 assert "prediction_mask" in tokenization
                 assert len(tokenization["prediction_mask"]) == len(tokenization['token_ids'])
                 if pretokenize:
-                    tokenization["prediction_mask"] != [True] * len(tokenization['token_ids'])
+                    tokenization["prediction_mask"] != [1] * len(tokenization['token_ids'])
                 else:
-                    tokenization["prediction_mask"] == [True] * len(tokenization['token_ids'])
+                    tokenization["prediction_mask"] == [1] * len(tokenization['token_ids'])
 
 
     @pytest.mark.parametrize("model", TEST_MODEL)
@@ -115,7 +115,7 @@ class TestPreprocessor:
                 assert hasattr(encodings, "prediction_mask")
                 assert len(encodings["prediction_mask"]) == len(encodings['attention_mask'])
                 if not pretokenize:
-                    assert encodings["prediction_mask"] == [False] + [True] * (len(encodings['input_ids'])-2) + [False]
+                    assert encodings["prediction_mask"] == [0] + [1] * (len(encodings['input_ids'])-2) + [False]
                 cnt += 1
         assert cnt == 8
 

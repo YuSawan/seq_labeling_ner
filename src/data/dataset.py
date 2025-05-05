@@ -214,7 +214,7 @@ class Preprocessor:
         labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(token_ids))]
         labels = [-100] + labels + [-100]
         encoding["labels"] = labels
-        encoding["prediction_mask"] = [False] + prediction_mask + [False]
+        encoding["prediction_mask"] = [0] + prediction_mask + [0]
 
         return encoding
 
@@ -335,7 +335,7 @@ def _merge_encoding(
         tokenizer: PreTrainedTokenizerBase,
     ) -> BatchEncoding:
     if not segments:
-        encoding['prediction_mask'] = [[True] * len(input_ids) for input_ids in encoding['input_ids']]
+        encoding['prediction_mask'] = [[1] * len(input_ids) for input_ids in encoding['input_ids']]
         return encoding
 
     new_encoding: dict[str, Any] = {"input_ids": [], "offset_mapping": [], "prediction_mask": []}
@@ -360,7 +360,7 @@ def _merge_encoding(
                 offsets = offsets[1:]
             merged_input_ids.extend(input_ids)
             merged_offsets.extend((char_start + ofs[0], char_start + ofs[1]) for ofs in offsets)
-            merged_prediction_mask.extend([True] + [False] * (len(input_ids)-1))
+            merged_prediction_mask.extend([1] + [0] * (len(input_ids)-1))
 
         assert all(
             merged_offsets[i][0] >= merged_offsets[i - 1][1] for i in range(1, len(merged_offsets))

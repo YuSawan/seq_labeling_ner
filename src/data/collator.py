@@ -43,10 +43,10 @@ class Collator(DataCollatorWithPadding):
 
         if self.tokenizer.padding_side == "right":
             batch["labels"] = [label + [-100] * (entity_length - len(label)) for label in labels] if labels else None
-            batch["prediction_mask"] = [mask + [False] * (entity_length - len(mask)) for mask in prediction_mask]
+            batch["prediction_mask"] = [mask + [0] * (entity_length - len(mask)) for mask in prediction_mask]
         else:
             batch["labels"] = [[-100] * (entity_length - len(label)) + label for label in labels] if labels else None
-            batch["prediction_mask"] = [[False] * (entity_length - len(mask)) + mask for mask in prediction_mask]
+            batch["prediction_mask"] = [[0] * (entity_length - len(mask)) + mask for mask in prediction_mask]
 
         if self.return_tensors == "pt":
             batch["labels"] = torch.tensor(batch["labels"], dtype=torch.int64) if batch["labels"] else None
