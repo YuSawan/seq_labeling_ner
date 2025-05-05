@@ -41,10 +41,10 @@ def test_Bert(model_name: str, from_pretrained: bool) -> None:
 @pytest.mark.parametrize("model_name", TEST_MODEL)
 @pytest.mark.parametrize('pooler', ['sum', 'last', 'concat'])
 @pytest.mark.parametrize('use_lstm', [True, False])
-def test_Encoder(model_name: str, pooler: str, use_lstm: bool) -> None:
+@pytest.mark.parametrize('freeze_bert', [True, False])
+def test_Encoder(model_name: str, pooler: str, use_lstm: bool, freeze_bert: bool) -> None:
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    config = BertNERConfig(model_name)
-    config.pooler = pooler
+    config = BertNERConfig(model_name, pooler=pooler, freeze_bert=freeze_bert)
     if use_lstm:
         config.lstm_layers = 1
         config.lstm_hidden_size = 200
@@ -56,6 +56,14 @@ def test_Encoder(model_name: str, pooler: str, use_lstm: bool) -> None:
     assert hasattr(encoder, "lstm") if use_lstm else not hasattr(encoder, "lstm")
     assert isinstance(encoder.bert, Bert)
     assert encoder.bert.model.name_or_path == model_name
+
+    if freeze_bert:
+        encoder.freeze_bert()
+        for param in encoder.bert.parameters():
+            assert not param.requires_grad
+        if use_lstm:
+            for param in encoder.lstm.parameters():
+                assert param.requires_grad
 
     encodings = tokenizer("Hello, my dog is cute", return_tensors="pt")
 
