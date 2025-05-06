@@ -66,9 +66,7 @@ class TokenModel(nn.Module):
         assert 0 < config.weight_O < 1
         self.classifier = self._build_classifier()
 
-        if config.no_crf:
-            pass
-        else:
+        if not config.no_crf:
             self.crf = CRF(num_tags=config.num_labels, batch_first=True)
 
     def _build_classifier(self) -> nn.Linear:
@@ -124,9 +122,8 @@ class TokenModel(nn.Module):
         loss = None
         if labels is not None:
             if self.config.no_crf:
-                weights = torch.ones(self.num_labels)
+                weights = torch.ones(self.num_labels, device=self.encoder.device)
                 weights[0] = self.config.weight_O
-                weights.to(self.encoder.device)
                 loss_fct = CrossEntropyLoss(weight=weights, reduction='mean')
                 masked_labels = labels.masked_fill(~prediction_mask.bool(), -100)
                 loss = loss_fct(logits.view(-1, self.num_labels), masked_labels.view(-1))
