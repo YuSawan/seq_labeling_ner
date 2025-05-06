@@ -30,15 +30,15 @@ class ModelArguments:
     model_max_length: int
     pooler: str
     freeze_bert: bool
+    classifier_lr: float
+    classifier_dropout: float
     no_crf: bool
-    lstm_layers: Optional[int]
-    lstm_hidden_size: Optional[int]
-    classifier_lr: Optional[float]
-    classifier_dropout: Optional[float]
-    weight_O: Optional[float]
-    bias_O: Optional[float]
-    cache_dir: Optional[str]
-    prev_path: Optional[str]
+    lstm_layers: Optional[int] = None
+    lstm_hidden_size: Optional[int] = None
+    weight_O: Optional[float] = 0.01
+    bias_O: Optional[float] = None
+    cache_dir: Optional[str] = None
+    prev_path: Optional[str] = None
 
 
 def parse_args() -> tuple[DatasetArguments, ModelArguments, TrainingArguments]:
