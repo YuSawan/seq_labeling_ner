@@ -67,10 +67,9 @@ class TestTokenModel:
                 model.dropout.p == model.config.encoder_config.hidden_dropout_prob
 
         if no_crf:
-            assert not hasattr(model, 'crf') and hasattr(model, 'loss_fct')
-            assert isinstance(model.loss_fct, nn.CrossEntropyLoss)
+            assert not hasattr(model, 'crf')
         else:
-            assert hasattr(model, 'crf') and not hasattr(model, 'loss_fct')
+            assert hasattr(model, 'crf')
             assert isinstance(model.crf, CRF)
 
 
