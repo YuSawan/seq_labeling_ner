@@ -43,7 +43,6 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
             weight_O=model_args.weight_O,
             bias_O=model_args.bias_O
         )
-        model = BertNER(config)
     else:
         tokenizer = AutoTokenizer.from_pretrained(model_args.prev_path)
         model = BertNER.from_pretrained(model_args.prev_path)
@@ -69,6 +68,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
         config.id2label = {i: label for i, label in enumerate(labels)}
         logger.info(f"labels: {labels}")
         logger.info(f"format: {data_args.format}")
+        model = BertNER(config)
 
     preprocessor = Preprocessor(
         tokenizer,

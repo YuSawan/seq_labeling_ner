@@ -35,7 +35,7 @@ class ModelArguments:
     classifier_dropout: Optional[float] = None
     lstm_layers: Optional[int] = None
     lstm_hidden_size: Optional[int] = None
-    weight_O: Optional[float] = 0.01
+    weight_O: float = 0.01
     bias_O: Optional[float] = None
     cache_dir: Optional[str] = None
     prev_path: Optional[str] = None
