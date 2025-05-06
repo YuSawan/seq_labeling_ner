@@ -31,7 +31,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
 
     set_seed(training_args.seed)
     if not model_args.prev_path:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name, model_max_length=model_args.context_length, token=TOKEN)
+        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name, model_max_length=model_args.model_max_length, token=TOKEN)
         config = BertNERConfig(
             model_args.model_name,
             pooler=model_args.pooler,

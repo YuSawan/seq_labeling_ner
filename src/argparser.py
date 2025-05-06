@@ -27,7 +27,7 @@ class DatasetArguments:
 class ModelArguments:
     """Model arguments."""
     model_name: str
-    context_length: int
+    model_max_length: int
     pooler: str
     freeze_bert: bool
     lstm_layers: int
