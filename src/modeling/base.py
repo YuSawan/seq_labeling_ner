@@ -67,9 +67,8 @@ class TokenModel(nn.Module):
         self.classifier = self._build_classifier()
 
         if config.no_crf:
-            weights = torch.ones(self.num_labels)
-            weights[0] = config.weight_O
-            self.loss_fct = CrossEntropyLoss(weight=weights, reduction='mean')
+            self.weights = torch.ones(self.num_labels)
+            self.weights[0] = config.weight_O
         else:
             self.crf = CRF(num_tags=config.num_labels, batch_first=True)
 
@@ -126,8 +125,9 @@ class TokenModel(nn.Module):
         loss = None
         if labels is not None:
             if self.config.no_crf:
+                loss_fct = CrossEntropyLoss(weight=self.weights, reduction='mean')
                 masked_labels = labels.masked_fill(~prediction_mask.bool(), -100)
-                loss = self.loss_fct(logits.view(-1, self.num_labels), masked_labels.view(-1))
+                loss = loss_fct(logits.view(-1, self.num_labels), masked_labels.view(-1))
             else:
                 # Negative of the log likelihood.
                 # Loop through the batch here because of 2 reasons:
