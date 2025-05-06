@@ -30,12 +30,12 @@ class ModelArguments:
     model_max_length: int
     pooler: str
     freeze_bert: bool
-    lstm_layers: int
-    lstm_hidden_size: int
+    lstm_layers: Optional[int]
+    lstm_hidden_size: Optional[int]
     no_crf: bool
     classifier_lr: Optional[float]
     classifier_dropout: Optional[float]
-    weight_O: float
+    weight_O: Optional[float]
     bias_O: Optional[float]
     cache_dir: Optional[str]
     prev_path: Optional[str]
