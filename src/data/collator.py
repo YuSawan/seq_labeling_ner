@@ -33,7 +33,7 @@ class Collator(DataCollatorWithPadding):
         prediction_mask = [f.pop("prediction_mask") for f in features]
         _ = [f.pop("token_type_ids", None) for f in features]
         extra_fields = {}
-        extra_field_names = {"id"}
+        extra_field_names = {"id", "offsets"}
         for k in list(features[0].keys()):
             if k in extra_field_names:
                 extra_fields[k] = [f.pop(k) for f in features]

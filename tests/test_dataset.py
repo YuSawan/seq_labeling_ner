@@ -114,6 +114,8 @@ class TestPreprocessor:
                 assert len(encodings["labels"]) == len(encodings['attention_mask'])
                 assert hasattr(encodings, "prediction_mask")
                 assert len(encodings["prediction_mask"]) == len(encodings['attention_mask'])
+                assert hasattr(encodings, "offsets")
+                assert len(encodings["offsets"]) == len(encodings['attention_mask']) - 2
                 if not pretokenize:
                     assert encodings["prediction_mask"] == [0] + [1] * (len(encodings['input_ids'])-2) + [False]
                 cnt += 1

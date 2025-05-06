@@ -197,26 +197,22 @@ class Preprocessor:
 
         for example, tokenization in zip(document, self.tokenize([e["text"] for e in document], segments)):
             example_id = example["id"]
-            yield self._get_encoding(tokenization['token_ids'], self._get_entities(example, tokenization), tokenization['prediction_mask'], example_id)
 
+            encoding = self._fast_tokenizer.prepare_for_model(tokenization['token_ids'], add_special_tokens=True)
+            # PreTrainedTokenizerFastだけprepare_for_modelのadd_special_tokensに非対応
+            if type(self._fast_tokenizer) is PreTrainedTokenizerFast:
+                encoding['input_ids'] = [self._fast_tokenizer.cls_token_id] + encoding['input_ids'] + [self._fast_tokenizer.sep_token_id]
+                encoding['attention_mask'] = [1] + encoding['attention_mask'] + [1]
 
-    def _get_encoding(self, token_ids: list[int], entities: list[tuple[int, int, str]], prediction_mask: list[bool], example_id: str) -> BatchEncoding:
-        encoding = self._fast_tokenizer.prepare_for_model(
-            token_ids,
-            add_special_tokens=True,
-        )
-        # PreTrainedTokenizerFastだけprepare_for_modelのadd_special_tokensに非対応
-        if type(self._fast_tokenizer) is PreTrainedTokenizerFast:
-            encoding['input_ids'] = [self._fast_tokenizer.cls_token_id] + encoding['input_ids'] + [self._fast_tokenizer.sep_token_id]
-            encoding['attention_mask'] = [1] + encoding['attention_mask'] + [1]
+            entities = self._get_entities(example, tokenization)
+            encoding["id"] = example_id
+            labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(tokenization['token_ids']))]
+            labels = [-100] + labels + [-100]
+            encoding["labels"] = labels
+            encoding["prediction_mask"] = [0] + tokenization['prediction_mask'] + [0]
+            encoding["offsets"] = tokenization['offsets']
 
-        encoding["id"] = example_id
-        labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(token_ids))]
-        labels = [-100] + labels + [-100]
-        encoding["labels"] = labels
-        encoding["prediction_mask"] = [0] + prediction_mask + [0]
-
-        return encoding
+            yield encoding
 
 
     def _get_entities(self, example: Example, tokenization: dict[str, Any]) -> list[tuple[int, int, str]]:
