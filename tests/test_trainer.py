@@ -30,7 +30,7 @@ config.id2label = {i: label for i, label in enumerate(labels)}
 model = BertNER(config, encoder_from_pretrained=False)
 
 preprocessor = Preprocessor(tokenizer, labels, format=format, pretokenize=True)
-training_args = TrainingArguments(output_dir="test_model/", remove_unused_columns=False, num_train_epochs=1)
+training_args = TrainingArguments(output_dir="test_model/", remove_unused_columns=False, num_train_epochs=1, report_to='none')
 splits = get_splits(raw_datasets, preprocessor, training_args)
 dataloader = get_dataloader(splits['train'], tokenizer, 2, training_args)
 
