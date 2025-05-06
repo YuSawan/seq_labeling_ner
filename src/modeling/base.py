@@ -74,11 +74,14 @@ class TokenModel(nn.Module):
             self.crf = CRF(num_tags=config.num_labels, batch_first=True)
 
     def _build_classifier(self) -> nn.Linear:
-        if self.config.pooler in ('last', 'sum'):
-            classifier = nn.Linear(self.config.encoder_config.hidden_size, self.config.num_labels)
+        if self.config.lstm_hidden_size:
+            classifier = nn.Linear(2 * self.config.lstm_hidden_size, self.config.num_labels)
         else:
-            assert self.config.pooler == 'concat'
-            classifier = nn.Linear(4 * self.config.encoder_config.hidden_size, self.config.num_labels)
+            if self.config.pooler in ('last', 'sum'):
+                classifier = nn.Linear(self.config.encoder_config.hidden_size, self.config.num_labels)
+            else:
+                assert self.config.pooler == 'concat'
+                classifier = nn.Linear(4 * self.config.encoder_config.hidden_size, self.config.num_labels)
 
         bias_O = self.config.bias_O
         """Increase tag "O" bias to produce high probabilities early on and
