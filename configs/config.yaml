@@ -3,8 +3,6 @@ model:
   model_name: 'google-bert/bert-base-uncased' # Hugging Face model
   model_max_length: 512
   freeze_bert: false
-  lstm_layers: 1
-  lstm_hidden_size: 200
   no_crf: true
   weight_O: 0.01
   bias_O: 6.
