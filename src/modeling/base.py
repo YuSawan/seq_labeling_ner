@@ -126,8 +126,8 @@ class TokenModel(nn.Module):
             if self.config.no_crf:
                 weights = torch.ones(self.num_labels)
                 weights[0] = self.config.weight_O
-                weights.to(self.classifier.device)
-                loss_fct = CrossEntropyLoss(weight=self.weights, reduction='mean')
+                weights.to(self.encoder.bert.model.device)
+                loss_fct = CrossEntropyLoss(weight=weights, reduction='mean')
                 masked_labels = labels.masked_fill(~prediction_mask.bool(), -100)
                 loss = loss_fct(logits.view(-1, self.num_labels), masked_labels.view(-1))
             else:
