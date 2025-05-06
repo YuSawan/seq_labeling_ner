@@ -31,8 +31,8 @@ class ModelArguments:
     pooler: str
     freeze_bert: bool
     classifier_lr: float
-    classifier_dropout: float
     no_crf: bool
+    classifier_dropout: Optional[float] = None
     lstm_layers: Optional[int] = None
     lstm_hidden_size: Optional[int] = None
     weight_O: Optional[float] = 0.01

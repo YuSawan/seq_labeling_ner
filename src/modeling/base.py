@@ -65,10 +65,10 @@ class TokenModel(nn.Module):
         self.dropout = nn.Dropout(classifier_dropout)
         assert 0 < config.weight_O < 1
         self.classifier = self._build_classifier()
-        weights = torch.ones(self.num_labels)
-        weights[0] = config.weight_O
 
         if config.no_crf:
+            weights = torch.ones(self.num_labels)
+            weights[0] = config.weight_O
             self.loss_fct = CrossEntropyLoss(weight=weights, reduction='mean')
         else:
             self.crf = CRF(num_tags=config.num_labels, batch_first=True)
