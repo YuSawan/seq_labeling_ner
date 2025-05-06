@@ -8,6 +8,7 @@ model:
   no_crf: true
   weight_O: 0.01
   bias_O: 6.
+  classifier_lr: 1e-3
   classifier_dropout: 0.1
   pooler: 'last'
   prev_path: null # Pretrained Model Path: Use None if no pretrained model is being used

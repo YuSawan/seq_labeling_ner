@@ -14,6 +14,7 @@ class BertNERConfig(PretrainedConfig):
             freeze_bert: bool = False,
             lstm_layers: Optional[int] = None,
             lstm_hidden_size: Optional[int] = None,
+            classifier_lr: Optional[float] = None,
             classifier_dropout: Optional[float] = None,
             no_crf: bool = False,
             weight_O: float = 0.01,
@@ -31,6 +32,7 @@ class BertNERConfig(PretrainedConfig):
         self.freeze_bert = freeze_bert
         self.lstm_layers = lstm_layers
         self.lstm_hidden_size = lstm_hidden_size
+        self.classifier_lr = classifier_lr
         self.classifier_dropout = classifier_dropout
         self.no_crf = no_crf
         self.weight_O = weight_O

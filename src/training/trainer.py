@@ -12,11 +12,11 @@ from ..model import BertNER
 
 
 class TokenClassificationTrainer(Trainer):
-    def __init__(self, *args: Any, seq_scheme: str, classifier_lr: float, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, seq_scheme: str, classifier_lr: Optional[float] = None, **kwargs: Any) -> None:
         kwargs.setdefault("compute_metrics", self._compute_metrics)
         super().__init__(*args, **kwargs)
         self.seq_scheme = seq_scheme
-        self.classifier_lr = classifier_lr
+        self.classifier_lr = classifier_lr if classifier_lr else self.args.learning_rate
 
     def get_no_classifier_parameter_name(self, model: nn.Module) -> list[str]:
         no_classifier_parameters = get_parameter_names(model, ALL_LAYERNORM_LAYERS, ["crf", "classifier"])

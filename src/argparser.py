@@ -33,6 +33,7 @@ class ModelArguments:
     lstm_layers: int
     lstm_hidden_size: int
     no_crf: bool
+    classifier_lr: Optional[float]
     classifier_dropout: Optional[float]
     weight_O: float
     bias_O: Optional[float]

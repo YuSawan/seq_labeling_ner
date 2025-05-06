@@ -5,6 +5,7 @@ model:
   freeze_bert: true
   lstm_layers: 1
   lstm_hidden_size: 200
+  classifier_lr: 1e-3
   classifier_dropout: 0.1
   no_crf: true
   weight_O: 0.01
