@@ -26,6 +26,7 @@ class BertNER(nn.Module):
 
     def forward(self, *args: int, **kwargs: str) -> TokenClassifierOutput:
         """Wrapper function for the model's forward pass."""
+        _ = kwargs.pop('num_items_in_batch', None)
         output = self.model(*args, **kwargs)
         return output
 
