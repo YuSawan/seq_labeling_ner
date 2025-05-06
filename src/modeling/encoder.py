@@ -71,6 +71,10 @@ class Encoder(nn.Module):
                 bidirectional = True,
             )
 
+    @property
+    def device(self) -> torch.device:
+        return self.bert.model.device
+
     def resize_token_embeddings(self, new_num_tokens: int, pad_to_multiple_of: int | None = None) -> nn.Embedding:
         return self.bert.model.resize_token_embeddings(new_num_tokens, pad_to_multiple_of)
 
