@@ -3,7 +3,7 @@ model:
   model_name: 'google-bert/bert-base-uncased' # Hugging Face model
   model_max_length: 512
   freeze_bert: false
-  classifier_lr: 1e-3
+  classifier_lr: 1.e-3
   classifier_dropout: 0.1
   no_crf: false
   pooler: 'last'
