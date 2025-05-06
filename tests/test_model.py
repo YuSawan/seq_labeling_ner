@@ -93,18 +93,18 @@ class TestBertNER:
             _ = batch.pop('labels')
             outputs = model.decode(**batch)
             assert isinstance(outputs, TokenClassifierOutput)
-            assert isinstance(outputs.predictions, list)
-            assert len(outputs.predictions) == 2
+            assert isinstance(outputs.predictions, torch.Tensor)
+            assert outputs.predictions.size(0) == 2
             for pred, seq_mask in zip(outputs.predictions, batch['prediction_mask']):
-                assert len(pred) == seq_mask.count_nonzero().item()
+                assert pred[pred != -100].size(0) == seq_mask.count_nonzero().item()
 
         for batch in dataloader:
             outputs = model.decode(**batch)
             assert isinstance(outputs, TokenClassifierOutput)
-            assert isinstance(outputs.predictions, list)
-            assert len(outputs.predictions) == 2
+            assert isinstance(outputs.predictions, torch.Tensor)
+            assert outputs.predictions.size(0) == 2
             for pred, seq_mask in zip(outputs.predictions, batch['prediction_mask']):
-                assert len(pred) == seq_mask.count_nonzero().item()
+                assert pred[pred != -100].size(0) == seq_mask.count_nonzero().item()
 
 
     @pytest.mark.parametrize('model_name', TEST_MODEL)

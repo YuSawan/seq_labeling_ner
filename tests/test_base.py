@@ -118,7 +118,7 @@ class TestTokenModel:
         for batch in dataloader:
             outputs = model(**batch)
             predictions = model.decode(outputs.logits, outputs.prediction_mask)
-            assert isinstance(predictions, list)
-            assert len(predictions) == 2
+            assert isinstance(predictions, torch.Tensor)
+            assert predictions.size(0) == 2
             for pred, seq_mask in zip(predictions, outputs.prediction_mask):
-                assert len(pred) == seq_mask.count_nonzero().item()
+                assert pred[pred != -100].size(0) == seq_mask.count_nonzero().item()

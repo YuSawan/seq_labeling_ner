@@ -33,8 +33,12 @@ class BertNER(nn.Module):
     def decode(self, *args: int, **kwargs: str) -> TokenClassifierOutput:
         """Wrapper function for the model's decode pass."""
         outputs = self.model(*args, **kwargs)
-        outputs.predictions = self.model.decode(outputs.logits, outputs.prediction_mask)
-        return outputs
+        return TokenClassifierOutput(
+            loss=outputs.loss,
+            logits=outputs.logits,
+            predictions=self.model.decode(outputs.logits, outputs.prediction_mask),
+            prediction_mask=outputs.prediction_mask,
+        )
 
     @property
     def device(self) -> torch.device:
