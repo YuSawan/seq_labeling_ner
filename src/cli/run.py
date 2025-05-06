@@ -10,7 +10,9 @@ from transformers import (
 
 from src import BertNER, BertNERConfig, get_splits, parse_args, read_dataset
 from src.argparser import DatasetArguments, ModelArguments
-from src.data import Collator, Preprocessor
+from src.data import Collator, Preprocessor, get_sequence_labels
+from src.evaluation import evaluate
+from src.prediction import predict, submit_wandb_predict
 from src.training import LoggerCallback, TokenClassificationTrainer, setup_logger
 
 logger = logging.get_logger(__name__)
@@ -61,7 +63,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
             for example in document["examples"]:
                 for entity in example["entities"]:
                     label_set.add(entity["label"])
-        labels = sorted(label_set)
+        labels = get_sequence_labels(["O"] + sorted(label_set), data_args.format)
         config.num_labels = len(labels)
         config.label2id = {label: i for i, label in enumerate(labels)}
         config.id2label = {i: label for i, label in enumerate(labels)}
@@ -79,10 +81,11 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
     trainer = TokenClassificationTrainer(
         model = model,
         args=training_args,
-        processong_cls = tokenizer,
         train_dataset = splits['train'],
         eval_dataset = splits['validation'],
-        data_collator = Collator(tokenizer)
+        data_collator = Collator(tokenizer),
+        seq_scheme=data_args.format,
+        classifier_lr=model_args.classifier_lr,
     )
     trainer.add_callback(LoggerCallback(logger))
 
@@ -101,12 +104,29 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
             trainer.save_metrics("train", result.metrics)
 
     if training_args.do_eval:
-        # results = evaluate(model=model, dataset=splits['test'])
-        pass
+        metrics = trainer.evaluate()
+        logits = trainer.last_prediction.predictions
+        predictions = predict(logits, splits["test"], config.id2label, data_args.format)
+        new_metrics = evaluate(predictions, raw_datasets["test"])
+        metrics.update({f"eval_exact_{k}": v for k, v in new_metrics.items()})
+
+        logger.info(f"eval metrics: {metrics}")
+        trainer.log_metrics("eval", metrics)
+        if training_args.save_strategy != "no":
+            trainer.save_metrics("eval", metrics)
 
     if training_args.do_predict:
-        # predicts = predict(model=model, dataset=splits['validation'])
-        pass
+        result = trainer.predict(splits["validation"])
+        logits = trainer.last_prediction.predictions
+        predictions = predict(logits, splits["validation"], config.id2label, data_args.format)
+        new_metrics = evaluate(predictions, raw_datasets["validation"])
+        result.metrics.update({f"test_exact_{k}": v for k, v in new_metrics.items()})
+
+        logger.info(f"test metrics: {result.metrics}")
+        trainer.log_metrics("predict", result.metrics)
+        submit_wandb_predict(predictions, raw_datasets['validation'])
+        if training_args.save_strategy != "no":
+            trainer.save_metrics("predict", result.metrics)
 
 
 def cli_main() -> None:
