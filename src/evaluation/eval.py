@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import wandb
 from datasets import Dataset
 
 
@@ -43,3 +44,8 @@ def evaluate(predictions: dict[str, set[tuple[int, int, str]]], dataset: Dataset
 
     print(result)
     return result
+
+
+def submit_wandb_evaluate(metrics: dict[str, float]) -> None:
+    for k, v in metrics.items():
+        wandb.log({k: v})

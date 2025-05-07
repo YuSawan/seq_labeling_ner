@@ -11,7 +11,7 @@ from transformers import (
 from src import BertNER, BertNERConfig, get_splits, parse_args, read_dataset
 from src.argparser import DatasetArguments, ModelArguments
 from src.data import Collator, Preprocessor, get_sequence_labels
-from src.evaluation import evaluate
+from src.evaluation import evaluate, submit_wandb_evaluate
 from src.prediction import predict, submit_wandb_predict
 from src.training import LoggerCallback, TokenClassificationTrainer, setup_logger
 
@@ -111,6 +111,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
 
         logger.info(f"eval metrics: {metrics}")
         trainer.log_metrics("eval", metrics)
+        submit_wandb_evaluate(metrics)
         if training_args.save_strategy != "no":
             trainer.save_metrics("eval", metrics)
 
