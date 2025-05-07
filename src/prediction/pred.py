@@ -2,10 +2,9 @@
 from collections import OrderedDict
 from typing import Any
 
+import wandb
 from datasets import Dataset
 from seqeval.scheme import BILOU, IOB1, IOB2, IOBES, IOE1, IOE2, Entities
-
-import wandb
 
 SCHEME = {'iob1': IOB1, 'iob2': IOB2, 'ioe1': IOE1, 'ioe2': IOE2, 'iobes': IOBES, 'bilou': BILOU}
 
@@ -68,7 +67,7 @@ def submit_wandb_predict(predictions: dict[str, set[tuple[int, int, str]]], data
     for document in dataset:
         for example in document["examples"]:
             entities = set((ent["start"], ent["end"], ent["label"]) for ent in example["entities"])
-            true_entities[example["paragraph_id"]] = {"text": example["text"], "entities": entities}
+            true_entities[example["id"]] = {"text": example["text"], "entities": entities}
 
     assert len(pred_entities) == len(true_entities)
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
