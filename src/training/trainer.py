@@ -212,7 +212,7 @@ def _compute_metrics(p: EvalPrediction, id2label: dict[int, str], scheme: str) -
     results = compute_score(predictions=true_predictions, references=true_labels, mode='strict', scheme=scheme)
 
     return {
-        "loss": loss,
+        "loss": loss.mean().detach(),
         "precision": results["overall_precision"],
         "recall": results["overall_precision"],
         "f1": results["overall_f1"],
