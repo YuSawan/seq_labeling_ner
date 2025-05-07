@@ -40,7 +40,7 @@ def label_to_charspan(labels: list[str], word_offsets: list[tuple[int, int]], sc
 def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str], scheme: str) -> dict[str, Any]:
     _, _, predictions, _ = logits
     true_predictions = [
-        [id2label[p] for p in pred if p != -100]
+        [id2label[p] for p in pred if p != '-100']
         for pred in predictions
     ]
     assert len(true_predictions) == len(dataset)
@@ -73,7 +73,7 @@ def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset, preproce
             true_entities[example["id"]] = {"text": example["text"], "entities": entities}
         for example in preprocessor(document["examples"]):
             tokens = tokenizer.convert_ids_to_tokens(example['input_ids'])
-            true_entities[example["id"]].update({"tokens": tokens, "labels": example["labels"]})
+            true_entities[example["id"]].update({"tokens": tokens, "labels": [str(k) for k in example["labels"]]})
 
     assert len(pred_entities) == len(true_entities)
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
