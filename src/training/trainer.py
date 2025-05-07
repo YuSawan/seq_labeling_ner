@@ -95,6 +95,9 @@ class TokenClassificationTrainer(Trainer):
 
         return self.optimizer
 
+    def save_model(self, output_dir: Optional[str] = None, _internal_call: bool = False) -> None:
+        self.model.save_pretrained(output_dir)
+
     def _compute_metrics(self, p: EvalPrediction) -> dict[str, float]:
         self.last_prediction = p
         return _compute_metrics(p, self.model.config.id2label, self.seq_scheme)
