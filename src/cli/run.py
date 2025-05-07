@@ -103,7 +103,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
             trainer.save_metrics("train", result.metrics)
 
     if training_args.do_eval:
-        metrics = trainer.evaluate()
+        metrics = trainer.evaluate(splits['test'])
         logits = trainer.last_prediction.predictions
         predictions = predict(logits, splits["test"], config.id2label, data_args.format)
         new_metrics = evaluate(predictions, raw_datasets["test"])
