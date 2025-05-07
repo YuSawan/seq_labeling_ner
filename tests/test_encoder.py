@@ -5,6 +5,7 @@ from transformers.modeling_outputs import (
     BaseModelOutput,
     BaseModelOutputWithPoolingAndCrossAttentions,
 )
+from transformers.models.modernbert import ModernBertConfig
 
 from src import BertNERConfig
 from src.modeling.encoder import Bert, Encoder
@@ -31,7 +32,6 @@ def test_Bert(model_name: str, from_pretrained: bool) -> None:
     assert bert.model.name_or_path == model_name
     assert isinstance(bert, Bert)
     assert hasattr(bert, "config") and isinstance(bert.config, PretrainedConfig)
-
     encodings = tokenizer("Hello, my dog is cute", return_tensors="pt")
     output = bert(**encodings)
     assert isinstance(output, BaseModelOutputWithPoolingAndCrossAttentions) or isinstance(output, BaseModelOutput)
@@ -52,6 +52,7 @@ def test_Encoder(model_name: str, pooler: str, use_lstm: bool, freeze_bert: bool
     encoder = Encoder(config)
     assert isinstance(encoder, Encoder)
     assert hasattr(encoder, "config") and isinstance(encoder.config, PretrainedConfig)
+    assert hasattr(encoder, "head") if isinstance(encoder.config, ModernBertConfig) else not hasattr(encoder, "head")
     assert hasattr(encoder, "pooler") and encoder.pooler is POOLERS[pooler]
     assert hasattr(encoder, "lstm") if use_lstm else not hasattr(encoder, "lstm")
     assert isinstance(encoder.bert, Bert)
@@ -61,6 +62,9 @@ def test_Encoder(model_name: str, pooler: str, use_lstm: bool, freeze_bert: bool
         encoder.freeze_bert()
         for param in encoder.bert.parameters():
             assert not param.requires_grad
+        if isinstance(encoder.config, ModernBertConfig):
+            for param in encoder.head.parameters():
+                assert param.requires_grad
         if use_lstm:
             for param in encoder.lstm.parameters():
                 assert param.requires_grad
