@@ -11,7 +11,7 @@ def compute_score(
         scheme: Optional[str] = None,
         mode: Optional[str] = None,
         sample_weight: Optional[list[int]] = None,
-        zero_division: Union[str, int] = "warn",
+        zero_division: Union[str, int] = 0,
     ) -> dict[str, Any]:
     if scheme is not None:
         try:

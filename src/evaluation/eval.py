@@ -42,7 +42,6 @@ def evaluate(predictions: dict[str, set[tuple[int, int, str]]], dataset: Dataset
     precision, recall, f1 = calculate_metrics(all_num_corrects, all_num_preds, all_num_golds)
     result.update({"overall_precision": precision, "overall_recall": recall, "overall_f1": f1})
 
-    print(result)
     return result
 
 
