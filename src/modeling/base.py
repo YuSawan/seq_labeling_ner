@@ -163,7 +163,7 @@ class TokenModel(nn.Module):
             predictions = torch.argmax(logits, dim=2)
             y_preds = []
             for pred, seq_mask in zip(predictions, prediction_mask):
-                tags = pred[seq_mask.bool()].tolist()
+                tags = pred[seq_mask.bool()]
                 y_preds.append(tags)
 
             ## If viterebi decoding
