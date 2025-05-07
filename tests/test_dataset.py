@@ -5,7 +5,10 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, BatchEncoding
 
 from src.data import Preprocessor, get_sequence_labels
-from src.data.dataset import _offset_to_seqlabels, _remove_nested_mentions
+from src.data.dataset import (
+    _offset_to_seqlabels,
+    _remove_nested_mentions,
+)
 from src.data.tokenizer import BertJapaneseTokenizerFast
 
 TEST_MODEL = [

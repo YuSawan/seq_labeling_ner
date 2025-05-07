@@ -1,4 +1,5 @@
 import itertools
+from itertools import accumulate
 from typing import Any, Iterable, Optional, TypedDict
 
 from datasets import Dataset, DatasetDict, load_dataset
@@ -205,10 +206,20 @@ class Preprocessor:
                 encoding['attention_mask'] = [1] + encoding['attention_mask'] + [1]
 
             entities = self._get_entities(example, tokenization)
+            first_token_position_ids = list(accumulate(tokenization['prediction_mask']))
+            resize_entities = [(first_token_position_ids[s]-1, first_token_position_ids[e]-1, label) for s, e, label in entities]
+            labels = [self.label2id[label] for label in _offset_to_seqlabels(resize_entities, self.format, tokenization['prediction_mask'].count(1))]
+            cnt = 0
+            masked_labels = []
+            for mask in tokenization['prediction_mask']:
+                if mask == 1:
+                    masked_labels.append(labels[cnt])
+                    cnt += 1
+                else:
+                    masked_labels.append(-100)
+
             encoding["id"] = example_id
-            labels = [self.label2id[label] for label in _offset_to_seqlabels(entities, self.format, len(tokenization['token_ids']))]
-            labels = [-100] + labels + [-100]
-            encoding["labels"] = labels
+            encoding["labels"] = [-100] + masked_labels + [-100]
             encoding["prediction_mask"] = [0] + tokenization['prediction_mask'] + [0]
             encoding["offsets"] = tokenization['offsets']
 
@@ -233,7 +244,6 @@ class Preprocessor:
         if entity_map:
             logger.warning(f"Some entities are discarded during preprocessing: {entity_map}")
         return entities
-
 
     def _batch_spans(self, example: Example, tokenization: dict[str, Any]) -> Iterable[tuple[list[tuple[int, int]], list[tuple[int, int]]]]:
         def _enumerate_spans(left: int, right: int, max_length: Optional[int] = None) -> Iterable[tuple[int, int]]:
