@@ -62,7 +62,7 @@ def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str],
 def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset, preprocessor: Preprocessor) -> None:
     columns = ["pid", "text", "gold", "predictions", "tokens", "gold_tags", "prediction_tags"]
     result_table = wandb.Table(columns=columns)
-    tokenizer = Preprocessor._fast_tokenizer
+    tokenizer = preprocessor._fast_tokenizer
 
     pred_entities = predictions
     true_entities = OrderedDict()
