@@ -124,7 +124,7 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
 
         logger.info(f"test metrics: {result.metrics}")
         trainer.log_metrics("predict", result.metrics)
-        submit_wandb_predict(predictions, raw_datasets['validation'])
+        submit_wandb_predict(predictions, raw_datasets['validation'], preprocessor)
         if training_args.save_strategy != "no":
             trainer.save_metrics("predict", result.metrics)
 
