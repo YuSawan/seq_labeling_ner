@@ -13,7 +13,7 @@ def calculate_metrics(num_corrects: int, num_preds: int, num_golds: int) -> tupl
 
 
 def evaluate(predictions: dict[str, Any], dataset: Dataset) -> dict[str, float]:
-    pred_entities = [k: v['entities'] for k, v in predictions.items()]
+    pred_entities = {k: v['entities'] for k, v in predictions.items()}
     true_entities = OrderedDict()
 
     labels = set()
