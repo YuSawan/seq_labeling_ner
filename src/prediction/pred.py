@@ -40,7 +40,7 @@ def label_to_charspan(labels: list[str], word_offsets: list[tuple[int, int]], sc
 def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str], scheme: str) -> dict[str, Any]:
     _, _, predictions, _ = logits
     true_predictions = [
-        [id2label[p] for p in pred if p != '-100']
+        [id2label[p] for p in pred if p != -100]
         for pred in predictions
     ]
     assert len(true_predictions) == len(dataset)
