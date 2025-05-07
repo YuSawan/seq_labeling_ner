@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Any
 
 import wandb
 from datasets import Dataset
@@ -11,8 +12,8 @@ def calculate_metrics(num_corrects: int, num_preds: int, num_golds: int) -> tupl
     return precision, recall, f1
 
 
-def evaluate(predictions: dict[str, set[tuple[int, int, str]]], dataset: Dataset) -> dict[str, float]:
-    pred_entities = predictions
+def evaluate(predictions: dict[str, Any], dataset: Dataset) -> dict[str, float]:
+    pred_entities = [k: v['entities'] for k, v in predictions.items()]
     true_entities = OrderedDict()
 
     labels = set()

@@ -35,7 +35,7 @@ def label_to_charspan(labels: list[str], word_offsets: list[tuple[int, int]], sc
     return char_spans
 
 
-def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str], scheme: str) -> dict[str, set[tuple[int, int, str]]]:
+def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str], scheme: str) -> dict[str, Any]:
     _, _, predictions, _ = logits
     true_predictions = [
         [id2label[p] for p in pred if p != -100]
@@ -52,13 +52,13 @@ def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str],
         assert prediction_mask[0] == 1
         word_offsets = _word_offsets(offsets, prediction_mask)
         char_spans = label_to_charspan(prediction, word_offsets, scheme=scheme)
-        results[pid] = set(char_spans)
+        results[pid] = {'tags': prediction, 'entities': set(char_spans)}
 
     return results
 
 
-def submit_wandb_predict(predictions: dict[str, set[tuple[int, int, str]]], dataset: Dataset) -> None:
-    columns = ["pid", "text", "gold", "predictions"]
+def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset) -> None:
+    columns = ["pid", "text", "gold", "predictions", "tags"]
     result_table = wandb.Table(columns=columns)
 
     pred_entities = predictions
@@ -73,7 +73,7 @@ def submit_wandb_predict(predictions: dict[str, set[tuple[int, int, str]]], data
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
         assert pid == tid
         text = t['text']
-        y_span = [f"{text[s:e]}({lb})" for s, e, lb in y]
+        y_span = [f"{text[s:e]}({lb})" for s, e, lb in y['entiites']]
         t_span = [f"{text[s:e]}({lb})" for s, e, lb in t['entities']]
-        result_table.add_data(pid, text, ', '.join(t_span), ', '.join(y_span))
+        result_table.add_data(pid, text, ', '.join(t_span), ', '.join(y_span), y['tags'])
     wandb.log({"predictions": result_table})
