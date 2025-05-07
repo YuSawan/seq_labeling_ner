@@ -214,7 +214,7 @@ def _compute_metrics(p: EvalPrediction, id2label: dict[int, str], scheme: str) -
     return {
         "loss": loss.mean(),
         "precision": results["overall_precision"],
-        "recall": results["overall_precision"],
+        "recall": results["overall_recall"],
         "f1": results["overall_f1"],
         "accuracy": results["overall_accuracy"],
     }
