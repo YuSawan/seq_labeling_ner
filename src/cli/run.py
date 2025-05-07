@@ -97,9 +97,8 @@ def main(data_args: DatasetArguments, model_args: ModelArguments, training_args:
         result = trainer.train(resume_from_checkpoint=checkpoint)
         trainer.log_metrics("train", result.metrics)
         if training_args.save_strategy != "no":
-            model.config.save_pretrained(training_args.output_dir)
             tokenizer.save_pretrained(training_args.output_dir)
-            trainer.save_model()
+            trainer.save_model(training_args.output_dir)
             trainer.save_state()
             trainer.save_metrics("train", result.metrics)
 
