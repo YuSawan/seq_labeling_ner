@@ -207,7 +207,7 @@ class Preprocessor:
 
             entities = self._get_entities(example, tokenization)
             first_token_position_ids = list(accumulate(tokenization['prediction_mask']))
-            resize_entities = [(first_token_position_ids[s]-1, first_token_position_ids[e]-1, label) for s, e, label in entities]
+            resize_entities = [(first_token_position_ids[s]-1, first_token_position_ids[e-1], label) for s, e, label in entities]
             labels = [self.label2id[label] for label in _offset_to_seqlabels(resize_entities, self.format, tokenization['prediction_mask'].count(1))]
             cnt = 0
             masked_labels = []
