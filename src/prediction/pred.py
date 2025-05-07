@@ -79,7 +79,7 @@ def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset, preproce
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
         assert pid == tid
         text = t['text']
-        y_span = [f"{text[s:e]}({lb})" for s, e, lb in y['entiites']]
+        y_span = [f"{text[s:e]}({lb})" for s, e, lb in y['entities']]
         t_span = [f"{text[s:e]}({lb})" for s, e, lb in t['entities']]
         result_table.add_data(pid, text, ', '.join(t_span), ', '.join(y_span), t['tokens'], t['labels'], y['tags'])
     wandb.log({"predictions": result_table})
