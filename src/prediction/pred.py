@@ -74,7 +74,7 @@ def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset, preproce
             true_entities[example["id"]] = {"text": example["text"], "entities": entities}
         for example in preprocessor(document["examples"]):
             tokens = tokenizer.convert_ids_to_tokens(example['input_ids'])
-            true_entities[example["id"]].update({"tokens": tokens, "labels": ['<s>']+[id2label[k] for k in example["labels"] if k != -100]+['</s>']})
+            true_entities[example["id"]].update({"tokens": tokens, "labels": [id2label[k] for k in example["labels"] if k != -100]})
 
     assert len(pred_entities) == len(true_entities)
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
