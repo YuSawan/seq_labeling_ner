@@ -160,18 +160,18 @@ class TokenModel(nn.Module):
     ) -> torch.Tensor:
 
         if self.config.no_crf:
-            # predictions = torch.argmax(logits, dim=2)
-            # y_preds = []
-            # for pred, seq_mask in zip(predictions, prediction_mask):
-            #     tags = pred[seq_mask.bool()].tolist()
-            #     y_preds.append(tags)
-
-            # If viterebi decoding
+            predictions = torch.argmax(logits, dim=2)
             y_preds = []
-            for seq_logits, seq_mask in zip(logits, prediction_mask):
-                seq_logits = seq_logits[seq_mask.bool()]
-                y_pred = viterbi(seq_logits.cpu().detach().numpy(), num_labels=self.num_labels)
-                y_preds.append(torch.tensor(y_pred))
+            for pred, seq_mask in zip(predictions, prediction_mask):
+                tags = pred[seq_mask.bool()].tolist()
+                y_preds.append(tags)
+
+            ## If viterebi decoding
+            # y_preds = []
+            # for seq_logits, seq_mask in zip(logits, prediction_mask):
+            #     seq_logits = seq_logits[seq_mask.bool()]
+            #     y_pred = viterbi(seq_logits.cpu().detach().numpy(), num_labels=self.num_labels)
+            #     y_preds.append(torch.tensor(y_pred))
         else:
             y_preds = []
             for seq_logits, seq_mask in zip(logits, prediction_mask):
