@@ -6,6 +6,8 @@ import wandb
 from datasets import Dataset
 from seqeval.scheme import BILOU, IOB1, IOB2, IOBES, IOE1, IOE2, Entities
 
+from src.data import Preprocessor
+
 SCHEME = {'iob1': IOB1, 'iob2': IOB2, 'ioe1': IOE1, 'ioe2': IOE2, 'iobes': IOBES, 'bilou': BILOU}
 
 
@@ -57,9 +59,10 @@ def predict(logits: tuple[Any, ...], dataset: Dataset, id2label: dict[int, str],
     return results
 
 
-def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset) -> None:
-    columns = ["pid", "text", "gold", "predictions", "tags"]
+def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset, preprocessor: Preprocessor) -> None:
+    columns = ["pid", "text", "gold", "predictions", "tokens", "gold_tags", "prediction_tags"]
     result_table = wandb.Table(columns=columns)
+    tokenizer = Preprocessor._fast_tokenizer
 
     pred_entities = predictions
     true_entities = OrderedDict()
@@ -68,6 +71,9 @@ def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset) -> None:
         for example in document["examples"]:
             entities = set((ent["start"], ent["end"], ent["label"]) for ent in example["entities"])
             true_entities[example["id"]] = {"text": example["text"], "entities": entities}
+            for feature in preprocessor(example):
+                tokens = tokenizer.convert_ids_to_tokens(feature['input_ids'])
+                true_entities[feature["id"]].update({"tokens": tokens, "labels": feature["labels"]})
 
     assert len(pred_entities) == len(true_entities)
     for (pid, y), (tid, t) in zip(pred_entities.items(), true_entities.items()):
@@ -75,5 +81,5 @@ def submit_wandb_predict(predictions: dict[str, Any], dataset: Dataset) -> None:
         text = t['text']
         y_span = [f"{text[s:e]}({lb})" for s, e, lb in y['entiites']]
         t_span = [f"{text[s:e]}({lb})" for s, e, lb in t['entities']]
-        result_table.add_data(pid, text, ', '.join(t_span), ', '.join(y_span), y['tags'])
+        result_table.add_data(pid, text, ', '.join(t_span), ', '.join(y_span), t['tokens'], t['labels'], y['tags'])
     wandb.log({"predictions": result_table})
