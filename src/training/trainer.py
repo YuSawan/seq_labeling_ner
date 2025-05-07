@@ -205,7 +205,7 @@ def _compute_metrics(p: EvalPrediction, id2label: dict[int, str], scheme: str) -
         label = label[mask]
         labels.append(label)
     true_labels = [
-        [id2label[lb] for lb in label]
+        [id2label[lb] for lb in label if lb != -100]
         for label in labels
     ]
 
