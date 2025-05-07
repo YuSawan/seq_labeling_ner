@@ -44,7 +44,9 @@ class ModelArguments:
 def parse_args() -> tuple[DatasetArguments, ModelArguments, TrainingArguments]:
     parser = ArgumentParser()
     hfparser = HfArgumentParser(TrainingArguments)
-
+    parser.add_argument(
+        '--model_name', metavar="MODEL", default=None,
+    )
     parser.add_argument(
         "--config_file", metavar="FILE", required=True
     )
@@ -66,6 +68,7 @@ def parse_args() -> tuple[DatasetArguments, ModelArguments, TrainingArguments]:
     model_args = ModelArguments(**model_config)
     training_args = replace(training_args, **config)
 
+    model_args.model_name = args.model_name if args.model_name else model_args.model_name
     arguments.format = args.format if args.format else arguments.format
     model_args.prev_path = args.prev_path if args.prev_path else model_args.prev_path
 
