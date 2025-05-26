@@ -1,6 +1,12 @@
 # seq_labeling_ner
 Sequential labeling based named entity recognition toolkit
 
+## Available Models
+* BERT
+* RoBERTa (only pretokenize=False)
+* DeBERTa (only pretokenize=False)
+* ModernBERT
+
 ## Usage
 
 ### Instllation
