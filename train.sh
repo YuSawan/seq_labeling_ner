@@ -10,7 +10,7 @@ output_dir=save_models/bert-base-uncased/
 mkdir -p $output_dir
 
 for seed in 0 ; do
-uv run python src/main.py \
+uv run python src/cli/run.py \
     --do_train \
     --do_eval \
     --do_predict \
