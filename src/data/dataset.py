@@ -306,15 +306,17 @@ class Preprocessor:
             if n > self.max_num_tokens:
                 logger.info(f"truncate sequence: {encoding['input_ids'][i]}")
                 tokens = tokens[: self.max_num_tokens]
+                prediction_mask = encoding["prediction_mask"][i][: self.max_num_tokens]
                 boundary = (offset, offset + self.max_num_tokens)
             else:
                 boundary = (offset, offset+n)
+                prediction_mask = encoding["prediction_mask"][i]
 
             yield {
                 "token_ids": tokens,
                 "context_boundary": boundary,
                 "offsets": encoding["offset_mapping"][i],
-                "prediction_mask": encoding["prediction_mask"][i]
+                "prediction_mask": prediction_mask
             }
 
 
