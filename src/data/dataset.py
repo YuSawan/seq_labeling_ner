@@ -308,14 +308,16 @@ class Preprocessor:
                 tokens = tokens[: self.max_num_tokens]
                 prediction_mask = encoding["prediction_mask"][i][: self.max_num_tokens]
                 boundary = (offset, offset + self.max_num_tokens)
+                offset_mapping = encoding["offset_mapping"][i][: self.max_num_tokens]
             else:
                 boundary = (offset, offset+n)
                 prediction_mask = encoding["prediction_mask"][i]
+                offset_mapping = encoding["offset_mapping"][i]
 
             yield {
                 "token_ids": tokens,
                 "context_boundary": boundary,
-                "offsets": encoding["offset_mapping"][i],
+                "offsets": offset_mapping,
                 "prediction_mask": prediction_mask
             }
 
